@@ -26,14 +26,11 @@ class Authentication:
         self.config = yaml.safe_load(raw_yaml)
         
         self.authenticator = stauth.Authenticate(
-            config_file, 
-            self.config['cookie']['name'], 
-            self.config['cookie']['key'], 
-            self.config['cookie']['expiry_days']
+            credentials=self.config
         )
 
         self.initialize_session_state()
-        
+
 
     def initialize_session_state(self):
         """Initialize necessary session states to manage user interaction states."""
