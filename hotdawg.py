@@ -70,53 +70,53 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
                 "type": "file_search",
                 "vector_store_ids": [st.session_state.vector_store_selected],
                 "max_num_results": 20
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "edit_file",
-                    "description": "Edit a chunk or chunks of a file and return pairs of original and edited chunk(s) as your arguments to have them written to the cmp file",
-                    "strict": True,
-                    "parameters": {
-                        "type": "object",
-                        "required": [
-                        "chunks"
-                        ],
-                        "properties": {
-                        "chunks": {
-                            "type": "array",
-                            "description": "List of chunk objects for find-and-replace editing of the file",
-                            "items": {
-                            "type": "object",
-                            "properties": {
-                                "original": {
-                                "type": "string",
-                                "description": "Text originally retrieved"
-                                },
-                                "edited": {
-                                "type": "string",
-                                "description": "Edited version of the original text"
-                                }
-                            },
-                            "required": [
-                                "original",
-                                "edited"
-                            ],
-                            "additionalProperties": False
-                            }
-                        }
-                        },
-                        "additionalProperties": False
-                    }
-                }
             }
         ]
+            # Remove the edit_file function until able to hold files in memory
+#         {
+#                "type": "function",
+#                "name": "edit_file",
+#                "description": "Edit a chunk or chunks of a file and return pairs of original and edited chunk(s) as your arguments to have them written to the cmp file",
+#                "strict": True,
+#                "parameters": {
+#                    "type": "object",
+#                    "required": [
+#                    "chunks"
+#                    ],
+#                   "properties": {
+#                    "chunks": {
+#                        "type": "array",
+#                        "description": "List of chunk objects for find-and-replace editing of the file",
+#                        "items": {
+#                        "type": "object",
+#                        "properties": {
+#                            "original": {
+#                            "type": "string",
+#                            "description": "Text originally retrieved"
+#                            },
+#                            "edited": {
+#                            "type": "string",
+#                            "description": "Edited version of the original text"
+#                            }
+#                        },
+#                        "required": [
+#                            "original",
+#                            "edited"
+#                        ],
+#                        "additionalProperties": False
+#                        }
+#                    }
+#                    },
+#                    "additionalProperties": False
+#
+#                }
+#            }
 
     def setup_ui(self):
         """Setup the user interface components for interaction."""
-        st.title("HotDawg Test Environment")
+        st.title(":hotdog: HotDawg Test Environment")
         st.sidebar.title(":material/mic: Input Modality :material/chat:")
-        st.write("*A chatbox or audio input will appear once you choose an input on the left.*")
+        st.write("*Model defaults to fine-tuned GPT. A chatbox or audio input will appear once you choose an input on the left.*")
 
         new_modality = st.sidebar.selectbox(
             "Input Modality", ("Text", "Speech"), index=None, placeholder="Choose input mode", label_visibility="collapsed", key="modality"
@@ -175,6 +175,20 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
                     files_delete_response = self.client.files.delete(file_id=file_id)
                     if vs_delete_response and files_delete_response:
                         st.success("File(s) successfully deleted!")
+                        
+                        # Rerun logic to populate the vector store list properly
+                        st.spinner("Retrieving updated vector store file list to display...")
+                        vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
+                        
+                        # Create new list of file id and file name tuples
+                        st.session_state.vector_store_files = []
+                        for file in vs_contents_response.data:
+                            file_id = file.id
+                            file_name_response = self.client.files.retrieve(file_id=file_id)
+                            file_name = file_name_response.filename
+                            st.session_state.vector_store_files.append((file_name, file_id))
+
+                        st.success("Vector Store Contents Successfully Updated!")
 
         # Allow user to work with local files, or use uploader to add file to vector store
         upload_widget.title(':material/folder: Your Files')
@@ -183,7 +197,7 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
         )
         button1, button2 = upload_widget.columns([1,1])
         with button1:
-            upload_local_files = st.button(label=":material/attach_file: Upload file(s) to this Session")
+            upload_local_files = st.button(label=":material/attach_file: Set Edit File Target (OFF)")
         with button2:
             upload_vs_files = st.button(':material/upload_file: Upload file(s) to Vector Store')
         if upload_vs_files:
@@ -203,6 +217,20 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
                 )
                 if vs_upload_response:
                     st.success("New file added successfully to vector store!")
+                    
+                    # Rerun logic to populate the vector store list properly
+                    st.spinner("Retrieving updated vector store file list to display...")
+                    vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
+                    
+                    # Create new list of file id and file name tuples
+                    st.session_state.vector_store_files = []
+                    for file in vs_contents_response.data:
+                        file_id = file.id
+                        file_name_response = self.client.files.retrieve(file_id=file_id)
+                        file_name = file_name_response.filename
+                        st.session_state.vector_store_files.append((file_name, file_id))
+
+                    st.success("Vector Store Contents Successfully Updated!")
 
         else:
             st.sidebar.error("No files selected - add files and try uploading again")
@@ -210,50 +238,20 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
     def upload_files_to_local_session(self, uploaded_files):
         if len(uploaded_files) > 0:
             st.spinner("Uploading file(s) to this session...")
-            num_session_files = len(st.session_state.session_files)
-            for file in uploaded_files:
-                with open(file, 'r', encoding='utf-8') as f:
-                    st.session_state.session_files.append(f.read())
-            new_num_session_files = len(st.session_state.session_files)
-            if new_num_session_files > num_session_files:
-                st.success("File(s) successfully added to session!")
+            try:
+                num_session_files = len(st.session_state.session_files)
+                for file in uploaded_files:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        st.session_state.session_files.append(f.read())
+                new_num_session_files = len(st.session_state.session_files)
+                if new_num_session_files > num_session_files:
+                    st.success("File(s) successfully added to session!")
+            except Exception as e:
+                st.error(f"Error in Local Files: {e}")
+                print(f"Error in Local Files: {e}")
 
         else:
             st.sidebar.error("No files selected - add files and try uploading again")
-    
-    def call_graph_agent(self, operator_request: str) -> str:
-        """
-        A way for the operator to call the Microsoft Graph API Agent with a natural language request
-
-        Args:
-            operator_request (str): A concise natural language request describing what the user wants to do with Microsoft Graph API.
-
-        Returns:
-            result (str): A natural language summary of actions completed written by the Microsoft Graph Agent after completing any tool calls
-        """
-        result = st.session_state.microsoft_graph_agent.process_request(operator_request)
-
-        # debug
-        print(result)
-
-        return result
-    
-    def call_docautomation_agent(self, operator_request: str) -> str:
-        """
-        A way for the operator to call the Doc Automation Agent with a natural language request
-
-        Args:
-            operator_request (str): A concise natural language request describing what the user wants to do with the Doc Automation Agent.
-
-        Returns:
-            result (str): A natural language summary of actions completed written by the Doc Automation Agent after completing any tool calls
-        """
-        result = st.session_state.doc_automation_agent.process_request(operator_request)
-
-        # debug
-        print(result)
-
-        return result
 
     def handle_input(self):
         """Handle user input based on selected modality (Text or Speech)."""
@@ -283,10 +281,78 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
             with st.chat_message("user"):
                 st.markdown(transcription)
 
+    def stream_handler(self):
+    
+        for chunk in self.stream:
+            try:
+                if chunk.type == "response.output_text.delta":
+                    yield chunk.delta
+                
+            except Exception as e:
+                print(f"Error in stream: {e}")
+                st.error(f"Error in stream: {e}")
+
     def generate_assistant_response(self):
         """Generate assistant's response using AI model."""
+
         if self.new_message:
             with st.chat_message("assistant"):
+
+                # If stream is True, use the helper stream_handler()
+                self.stream = self.client.responses.create(
+                    model=self.model,
+                    input=st.session_state.messages,
+                    stream=True,
+                    tools=self.tools,
+                    truncation="auto"
+                )
+                
+                
+                response = self.stream_handler()
+                final_response = st.write_stream(response)
+                
+                # Use a handler to yield text stream
+                for text in self.stream_handler():
+                   st.write_stream(text)
+                # Add final response to messages list
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
+
+
+
+
+                        
+
+                
+
+    def process_stream_placeholder(self, response):
+            
+            # Original logic for handling tools
+            # may eliminate streaming to simplify responses.
+
+            for chunk in response:
+                tool_calls = None
+                if chunk.choices[0].message.tool_calls is not None:
+                    tool_calls = chunk.choices[0].message.tool_calls
+                # Write message if no tool call
+
+                if tool_calls is not None:
+                    # You MUST append the tool call message as its native message object or OpenAI will throw errors
+                    st.session_state.messages.append(response.choices[0].message)
+                    
+                    for tool_call in tool_calls:
+                        func_name = tool_call.function.name
+                        args = tool_call.function.arguments
+                        args = json.loads(args)
+                        tool_call_id = tool_call.id
+                        
+                        self.handle_function_input(
+                            func_name,
+                            args,
+                            tool_call_id
+                        )
+                    self.tool_use_completion()
+
+
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=st.session_state.messages,
