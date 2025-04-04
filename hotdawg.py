@@ -5,9 +5,6 @@
 import streamlit as st
 from pathlib import Path
 import json
-from openai import OpenAI
-
-test_client = OpenAI()
 
 class HotDawg:
 
