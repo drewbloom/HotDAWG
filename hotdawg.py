@@ -1,6 +1,5 @@
-# Additions needed:
+# Bugs:
 # 1. Upload file to session doesn't work - throws an error that immediately disappears.
-# 2. Need to get chat interaction updated to Responses API - most things should be the same otherwise.
 
 import streamlit as st
 from pathlib import Path
