@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
-from yaml.loader import SafeLoader
 
 class Authentication:
     """
@@ -18,32 +17,23 @@ class Authentication:
         Args:
             config_file (str): Path to the configuration YAML file.
         """
-        with open(config_file) as file:
-            self.config = yaml.load(file, Loader=SafeLoader)
+        # Use the following for a yaml file
+        #with open(config_file) as file:
+        #    self.config = yaml.load(file, Loader=SafeLoader)
+
+        # Handle secrets acc. streamlit's Cloud secrets
+        raw_yaml = st.secrets["authenticator"]["credentials"]
+        self.config = yaml.safe_load(raw_yaml)
         
         self.authenticator = stauth.Authenticate(
             config_file, 
             self.config['cookie']['name'], 
             self.config['cookie']['key'], 
-            self.config['cookie']['expiry_days'], 
-            auto_hash=True
+            self.config['cookie']['expiry_days']
         )
 
         self.initialize_session_state()
-
-        # Proposed refactor for secrets use
-        """
-        creds_yaml = st.secrets["authenticator"]["credentials"]
-        credentials = yaml.safe_load(creds_yaml)
-
-        authenticator = stauth.Authenticate(
-            credentials,
-            cookie_name=credentials['cookie']['name'],
-            cookie_key=credentials['cookie']['key'], 
-            cookie_expiry_days=credentials['cookie']['expiry_days'],
-        )
-
-        """
+        
 
     def initialize_session_state(self):
         """Initialize necessary session states to manage user interaction states."""

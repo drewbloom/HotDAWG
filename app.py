@@ -15,8 +15,11 @@ from hotdawg import HotDawg
 # Capture refresh tokens to use for future auth in stable state beyond sessions (yaml field?)
 
 # Load environment variables
-load_dotenv()
-OPENAI_API_KEY = os.getenv('AFFINITY_OPENAI_API_KEY')
+# load_dotenv()
+# OPENAI_API_KEY = os.getenv('AFFINITY_OPENAI_API_KEY')
+
+# Use streamlit secrets implementation
+OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 def main():
     # Initialize the Authentication class
