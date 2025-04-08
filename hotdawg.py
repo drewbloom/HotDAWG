@@ -20,9 +20,8 @@ class HotDawg:
         self.client = client # currently OpenAI client, but could pass a different client from app.py
         
         # Offer UI dropdown for selecting a model and set model based on user selection
-        self.model = "o3-mini" # can set model needed - will set default and allow user to pick others
-        self.models = ["ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72","o3-mini", "o1"]
-        st.session_state.model_selected = st.session_state.get('model_selected', None)
+        self.models = {"Fine-Tuned 4o for HotDocs": "ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72", "Lightweight Reasoning (o3-mini)": "o3-mini", "Heavy Reasoning (o1)": "o1"}
+        st.session_state.model_selected = st.session_state.get('model_selected', "ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72")
 
         self.vector_stores = {"HotDawg Shared Vector Store": "vs_67a56bff53248191a727cac5b0494749"}
         st.session_state.vector_store_selected = st.session_state.get('vector_store_selected', None)
@@ -153,7 +152,7 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
         # Offer choice of AI Models
         st.sidebar.title(":material/smart_toy: AI Models")
         model_selection = st.sidebar.selectbox(label='Pick an AI model', options=self.models, index=0, label_visibility='collapsed')
-        st.session_state.model_selection = model_selection
+        st.session_state.model_selected = self.models[model_selection]
 
 
         # Place vector store region in sidebar below input type
@@ -324,7 +323,7 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
 
                 # If stream is True, use the helper stream_handler()
                 self.stream = self.client.responses.create(
-                    model=self.model,
+                    model=st.session_state.model_selected,
                     input=st.session_state.messages,
                     stream=True,
                     tools=self.tools,
@@ -378,7 +377,7 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
 
 
                 response = self.client.chat.completions.create(
-                    model=self.model,
+                    model=st.session_state.model_selected,
                     messages=st.session_state.messages,
                     stream=False,
                     tools=self.tools,
@@ -444,7 +443,7 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
         """Generate a completion from the AI model after a tool use."""
         try:
             response = self.client.chat.completions.create(
-                model=self.model,
+                model=st.session_state.model_selected,
                 messages=st.session_state.messages,
                 stream=False,
                 tools=self.tools,
