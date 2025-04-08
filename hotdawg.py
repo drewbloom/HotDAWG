@@ -24,7 +24,7 @@ class HotDawg:
         self.models = ["ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72","o3-mini", "o1"]
         st.session_state.model_selected = st.session_state.get('model_selected', None)
 
-        self.vector_stores = ["vs_67a56bff53248191a727cac5b0494749"]
+        self.vector_stores = {"HotDawg Shared Vector Store": "vs_67a56bff53248191a727cac5b0494749"}
         st.session_state.vector_store_selected = st.session_state.get('vector_store_selected', None)
         # Add vs files to session state so they can be retrieved when vs selected
         st.session_state.vector_store_files = st.session_state.get('vector_store_files', [])
@@ -162,19 +162,19 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
         # Vector Stores
         upload_widget.title(':material/database: Vector Stores')
         vs_container = upload_widget.container()
-        vs_selected = vs_container.selectbox(label=':material/left_click: Choose vector store', index=0, options=self.vector_stores)
+        vs_selected = vs_container.selectbox(label=':material/left_click: Choose vector store', index=None, options=self.vector_stores)
         if vs_selected != st.session_state.vector_store_selected:
-            st.spinner("Retrieving vector store files list...")
-            st.session_state.vector_store_selected = vs_selected
-            vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
-            
-            # Create new list of file id and file name tuples
-            st.session_state.vector_store_files = []
-            for file in vs_contents_response.data:
-                file_id = file.id
-                file_name_response = self.client.files.retrieve(file_id=file_id)
-                file_name = file_name_response.filename
-                st.session_state.vector_store_files.append((file_name, file_id))
+            with st.spinner("Retrieving vector store files list..."):
+                st.session_state.vector_store_selected = self.vector_stores[vs_selected]
+                vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
+                
+                # Create new list of file id and file name tuples
+                st.session_state.vector_store_files = []
+                for file in vs_contents_response.data:
+                    file_id = file.id
+                    file_name_response = self.client.files.retrieve(file_id=file_id)
+                    file_name = file_name_response.filename
+                    st.session_state.vector_store_files.append((file_name, file_id))
 
         # Allow user to delete files from vs
         vs_files_selected = vs_container.multiselect(label=":material/folder_open: Vector Store Contents", options=st.session_state.vector_store_files) # original: st.session_state.file_ids
@@ -194,25 +194,25 @@ I'm ready to help you with HotDocs. Here is an empty components file written in 
 
                     print(filename) #debug
                     print(file_id) #debug
-                    st.spinner("Deleting file(s) from vector store...")
-                    vs_delete_response = self.client.vector_stores.files.delete(file_id=file_id, vector_store_id=st.session_state.vector_store_selected)
-                    files_delete_response = self.client.files.delete(file_id=file_id)
+                    with st.spinner("Deleting file(s) from vector store..."):
+                        vs_delete_response = self.client.vector_stores.files.delete(file_id=file_id, vector_store_id=st.session_state.vector_store_selected)
+                        files_delete_response = self.client.files.delete(file_id=file_id)
                     if vs_delete_response and files_delete_response:
                         st.success("File(s) successfully deleted!")
                         
                         # Rerun logic to populate the vector store list properly
-                        st.spinner("Retrieving updated vector store file list to display...")
-                        vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
-                        
-                        # Create new list of file id and file name tuples
-                        st.session_state.vector_store_files = []
-                        for file in vs_contents_response.data:
-                            file_id = file.id
-                            file_name_response = self.client.files.retrieve(file_id=file_id)
-                            file_name = file_name_response.filename
-                            st.session_state.vector_store_files.append((file_name, file_id))
+                        with st.spinner("Retrieving updated vector store file list to display..."):
+                            vs_contents_response = self.client.vector_stores.files.list(vector_store_id=st.session_state.vector_store_selected)
+                            
+                            # Create new list of file id and file name tuples
+                            st.session_state.vector_store_files = []
+                            for file in vs_contents_response.data:
+                                file_id = file.id
+                                file_name_response = self.client.files.retrieve(file_id=file_id)
+                                file_name = file_name_response.filename
+                                st.session_state.vector_store_files.append((file_name, file_id))
 
-                        st.success("Vector Store Contents Successfully Updated!")
+                            st.success("Vector Store Contents Successfully Updated!")
 
         # Allow user to work with local files, or use uploader to add file to vector store
         upload_widget.title(':material/folder: Your Files')
