@@ -55,12 +55,40 @@ Reasoning: You use reasoning to complete the user's request, first describing th
 Final Guidelines: Take a deep breath and remember to reason through your tasks and ask the user whenever you aren't sure what to do next.
 """
 
+        # Add few-shot messages to clue the model into proper behavior
+        self.few_shot_messages_dict = {
+            "user_message_1": "Ready to work with some HotDocs? Check to see if you're reasoning and outputting the HotDocs you write correctly, then I'll send you my first request",
+            "assistant_message_1": """<Thinking> 
+Okay, so the user wants to see reasoning and a proper HotDocs output before beginning their request. It would be best to output a basic HotDocs base consisting of the componentLibrary, the preferences, and the components.
+
+By completing this thinking section, reasoning is also being demonstrated. So a proper output is all that is needed from here.
+
+Outputting HotDocs correctly requires wrapping the output in backticks with an xml label. The componentLibrary can contain the schema, and the components can stay empty for now.
+</Thinking>
+
+I'm ready to help you with HotDocs. Here is an empty components file written in the proper format:
+
+```xml 
+<?xml version="1.0" encoding="UTF-8"?>
+<hd:componentLibrary xmlns:hd="http://www.hotdocs.com/schemas/component_library/2009" version="12">
+	<hd:preferences>
+		<hd:preference name="MAX_REPEAT_COUNT">100</hd:preference>
+		<hd:preference name="MAX_STACK_DEPTH">100</hd:preference>
+	</hd:preferences>
+	<hd:components>
+    </hd:components>
+</hd:componentLibrary>
+```
+"""
+        }
+
+        # Add system message to messages list, initialize messages in state if it doesn't exist.
         if "messages" not in st.session_state:
             st.session_state.messages = [{"role": "system", "content": self.system_message}]
-        # Add system message to messages list, initialize messages in state if it doesn't exist.
+            st.session_state.messages.append({"role": "user", "content": self.few_shot_messages_dict["user_message_1"]})
+            st.session_state.messages.append({"role": "assistant", "content": self.few_shot_messages_dict["assistant_message_1"]})
 
         # Define available tools for interaction
-
         self.tools = [
             {
                 "type": "file_search",
@@ -441,9 +469,11 @@ Final Guidelines: Take a deep breath and remember to reason through your tasks a
             # Dispense with any tool message prior to processing messages into chat flow
             if isinstance(message, dict):
                 if message["role"] not in ["system", "tool"]:
-                    with st.chat_message(message["role"]):
-                        st.markdown(message["content"])
-                # st.session_state["modality_change"] = False
+                    # remove few-shot messages from output
+                    if message["content"] not in self.few_shot_messages_dict.values():
+                        with st.chat_message(message["role"]):
+                            st.markdown(message["content"])
+
 
             # Check if the message is a ChatCompletion object (response from OpenAI API)
             elif isinstance(message, object):  # This will catch all messages, but we narrow down with attributes below
