@@ -20,7 +20,7 @@ class HotDawg:
         self.client = client # currently OpenAI client, but could pass a different client from app.py
         
         # Offer UI dropdown for selecting a model and set model based on user selection
-        self.models = {"Fine-Tuned 4o for HotDocs": "ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72", "Lightweight Reasoning (o3-mini)": "o3-mini", "Heavy Reasoning (o1)": "o1"}
+        self.models = {"Fine-Tuned 4o for HotDocs": "ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72", "GPT 4.1 (new release)": "gpt-4.1", "GPT 4.1-mini (new release)": "gpt-4.1-mini", "Lightweight Reasoning (o3-mini)": "o3-mini", "Heavy Reasoning (o1)": "o1"}
         st.session_state.model_selected = st.session_state.get('model_selected', "ft:gpt-4o-2024-08-06:affinity-openai:hotdocsai-v3-2025-03-31:BHBWF5Q4:ckpt-step-72")
 
         self.vector_stores = {"HotDawg Shared Vector Store": "vs_67a56bff53248191a727cac5b0494749"}
